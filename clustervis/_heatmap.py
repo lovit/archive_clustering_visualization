@@ -73,7 +73,7 @@ def _dist_pole_sorting(x, pdist, metric, **kargs):
             continue
         found_cluster = None
         for g, idxs in enumerate(groups):
-            dist = pairwise_distances(x[idxs,:], x[idx].reshape(1,-1), metric=metric).mean()
+            dist = pdist[idxs,idx].mean()
             if dist > max_dist:
                 continue
             found_cluster = g
