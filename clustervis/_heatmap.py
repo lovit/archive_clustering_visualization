@@ -15,6 +15,8 @@ def visualize_heatmap(centroids, metric='cosine', sort=None, segmentor=None, **k
 
     if segmentor == 'reverse_band':
         points = _reversed_band_segmentation(pdist, **kargs)
+    elif segmentor == 'gaussian_filter':
+        points, _ = _gaussian_filter_segmentation(pdist, **kargs)
 
     if segmentor and points and len(points) > 2:
         plt.hold()
@@ -101,8 +103,8 @@ def _reversed_band_segmentation(pdist, **kargs):
         A = np.flip(A,0)
         return A
     
-    n = kargs.get('reverse_band_filter_width', int(pdist.shape[0]*0.5))
-    k = kargs.get('reverse_band_band_width', min(int(n/2), 10))
+    n = kargs.get('filter_width', int(pdist.shape[0]*0.5))
+    k = kargs.get('band_width', min(int(n/2), 10))
     
     A = reversed_band_matrix(n, k)
     means = []
@@ -123,13 +125,41 @@ def _reversed_band_segmentation(pdist, **kargs):
             
     return [0] + points + [pdist.shape[0]]
 
+def _generate_gaussian_filter(s):
+    f = np.zeros(shape=(s*2, s*2))
+    for i in range(0, s):
+        for j in range(0, s):
+            d = np.exp(-((i^2)+(j^2)) / s)
+            f[s-i-1, s-j-1] = -d
+            f[s+i, s+j]     = -d
+            f[s-i-1, s+j]   = d
+            f[s+i, s-j-1]   = d
+    return f / sum(sum(abs(f)))
+
+def _gaussian_filter_segmentation(pdist, **kargs):
+    t = kargs.get('threshold', 0.3)
+    width = kargs.get('filter_width', 5)
+    f = _generate_gaussian_filter(width)
+    n, w = pdist.shape[0], int(f.shape[0]/2)
+    s, d = np.zeros(n), np.zeros(n)
+    for i in range(0, n-2*w+1):
+        for j in range(0, 2*w):
+            for k in range(0, 2*w):
+                #d[i+w] += distance(y[i+j,:], y[i+k,:]) * f[j, k]
+                d[i+w] += pdist[i+j,i+k] * f[j, k]
+        if d[i+w] > t: s[i+w] = 1
+    s[0] = 1
+    s[n-1] = 1
+    points = [i for i, si in enumerate(s) if si == 1]
+    return points, d
+
 def _plot_segmented_heatmap(pdist, points, kargs):
     def add_lines(k, xmin, xmax):
         plt.hlines(k, xmin, xmax, colors=line_color, linewidth=line_width)
         plt.vlines(k, xmin, xmax, colors=line_color, linewidth=line_width)
     
     line_width = kargs.get('line_width', 3)    
-    line_color = kargs.get('boundary_line_color', 'red')
+    line_color = kargs.get('line_color', 'red')
         
     for ix, point in enumerate(points):
         if ix == 0 or ix == len(points)-1:
