@@ -9,16 +9,17 @@ def visualize_heatmap(centroids, metric='cosine', sort=None, segmentor=None, **k
     if sort == 'row_sum':
         pdist = _row_sum_sorting(pdist)
     elif sort == 'dist_pole':
-        pdist = _dist_pole_sorting(centroids, pdist, metric, **kargs)
+        pdist, points= _dist_pole_sorting(centroids, pdist, metric, **kargs)
 
     figure = _draw_figure(pdist, **kargs)
 
-    if segmentor == 'reverse_band':
-        points = _reversed_band_segmentation(pdist, **kargs)
-    elif segmentor == 'gaussian_filter':
-        points, _ = _gaussian_filter_segmentation(pdist, **kargs)
+    if not 'points' in locals():
+        if segmentor == 'reverse_band':
+            points = _reversed_band_segmentation(pdist, **kargs)
+        elif segmentor == 'gaussian_filter':
+            points, _ = _gaussian_filter_segmentation(pdist, **kargs)
 
-    if segmentor and points and len(points) > 2:
+    if 'points' in locals() and len(points) > 2:
         plt.hold()
         _plot_segmented_heatmap(pdist, points, kargs)
 
@@ -86,14 +87,18 @@ def _dist_pole_sorting(x, pdist, metric, **kargs):
             groups[found_cluster].append(idx)
 
     group_order = [idx for group in groups for idx in group]
-
+    boundaries = [0]
+    for group in groups:
+        boundaries.append(boundaries[-1] + len(group))
+    boundaries.append(n)
+    
     indices_orig = list(range(n))
     indices_revised = np.ix_(group_order,group_order)
 
     pdist_revised = np.empty_like(pdist)
     pdist_revised[np.ix_(indices_orig,indices_orig)] = pdist[indices_revised]
 
-    return pdist_revised
+    return pdist_revised, boundaries
 
 def _reversed_band_segmentation(pdist, **kargs):
     def reversed_band_matrix(n, k):
