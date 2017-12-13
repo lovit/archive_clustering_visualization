@@ -5,19 +5,21 @@ import matplotlib.pyplot as plt
 def visualize_heatmap(centroids, metric='cosine', sort=None, segmentor=None, **kargs):    
     n = centroids.shape[0]
     pdist = pairwise_distances(centroids, metric=metric)
-    
+
     if sort == 'row_sum':
         pdist = _row_sum_sorting(pdist)
+    elif sort == 'dist_pole':
+        pdist = _dist_pole_sorting(centroids, pdist, metric, **kargs)
 
     figure = _draw_figure(pdist, **kargs)
-    
-    if segmentor == 'reverse_band':        
+
+    if segmentor == 'reverse_band':
         points = _reversed_band_segmentation(pdist, **kargs)
-    
+
     if segmentor and points and len(points) > 2:
         plt.hold()
         _plot_segmented_heatmap(pdist, points, kargs)
-    
+
     return figure
 
 def _draw_figure(pdist, **kargs):
@@ -25,10 +27,10 @@ def _draw_figure(pdist, **kargs):
     dpi = kargs.get('dpi', 50)
     facecolor = kargs.get('facecolor', None)
     edgecolor = kargs.get('edgecolor', None)
-    frameon = kargs.get('frameon', True)    
+    frameon = kargs.get('frameon', True)
     title = kargs.get('title', None)
     cmap = kargs.get('cmap', 'gray')
-    
+
     n,m = pdist.shape
     figure = plt.figure(figsize=figsize, dpi=dpi, facecolor=facecolor, edgecolor=edgecolor, frameon=frameon)
     #ax = figure.add_subplot(1,1,1)
@@ -37,18 +39,58 @@ def _draw_figure(pdist, **kargs):
     plt.imshow(pdist, cmap=cmap)
     if title:
         plt.title(title)
-        
+
     return figure
 
 def _row_sum_sorting(pdist):
-    n = pdist.shape[0]    
+    n = pdist.shape[0]
     sim_order = pdist.sum(axis=0).argsort()
-    
+
     indices_orig = list(range(n))
     indices_revised = np.ix_(sim_order,sim_order)
 
     pdist_revised = np.empty_like(pdist)
     pdist_revised[np.ix_(indices_orig,indices_orig)] = pdist[indices_revised]
+    return pdist_revised
+
+def _dist_pole_sorting(x, pdist, metric, **kargs):
+
+    df = kargs.get('document_frequency', None)
+    max_dist = kargs.get('dist_pole_max_dist', 0.5)
+
+    if df:
+        assert x.shape[0] == len(df)
+        sorted_indices, _ = zip(*sorted(enumerate(df), lambda x:-x[1]))
+    else:
+        sorted_indices = pdist.sum(axis=0).argsort()
+
+    n = x.shape[0]
+    groups = []
+
+    for i, idx in enumerate(sorted_indices):
+        if i == 0:
+            groups.append([idx])
+            continue
+        found_cluster = None
+        for g, idxs in enumerate(groups):
+            dist = pairwise_distances(x[idxs,:], x[idx].reshape(1,-1), metric=metric).mean()
+            if dist > max_dist:
+                continue
+            found_cluster = g
+            break
+        if found_cluster == None:
+            groups.append([idx])
+        else:
+            groups[found_cluster].append(idx)
+
+    group_order = [idx for group in groups for idx in group]
+
+    indices_orig = list(range(n))
+    indices_revised = np.ix_(group_order,group_order)
+
+    pdist_revised = np.empty_like(pdist)
+    pdist_revised[np.ix_(indices_orig,indices_orig)] = pdist[indices_revised]
+
     return pdist_revised
 
 def _reversed_band_segmentation(pdist, **kargs):
