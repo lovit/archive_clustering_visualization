@@ -6,24 +6,30 @@ def visualize_heatmap(centroids, metric='cosine', sort=None, segmentor=None, **k
     n = centroids.shape[0]
     pdist = pairwise_distances(centroids, metric=metric)
 
+    indices_revised = None
+    points = None
+    
     if sort == 'row_sum':
-        pdist = _row_sum_sorting(pdist)
+        pdist, indices_revised = _row_sum_sorting(pdist)
     elif sort == 'dist_pole':
-        pdist, points= _dist_pole_sorting(centroids, pdist, metric, **kargs)
+        pdist, indices_revised, points= _dist_pole_sorting(centroids, pdist, metric, **kargs)
 
     figure = _draw_figure(pdist, **kargs)
 
-    if not 'points' in locals():
+    if not points:
         if segmentor == 'reverse_band':
             points = _reversed_band_segmentation(pdist, **kargs)
         elif segmentor == 'gaussian_filter':
             points, _ = _gaussian_filter_segmentation(pdist, **kargs)
 
-    if 'points' in locals() and len(points) > 2:
+    if points and len(points) > 2:
         plt.hold()
         _plot_segmented_heatmap(pdist, points, kargs)
+    
+    if type(indices_revised) == np.ndarray:
+        indices_revised = indices_revised.tolist()
 
-    return figure
+    return figure, indices_revised, points
 
 def _draw_figure(pdist, **kargs):
     figsize = kargs.get('figsize', (15, 15))
@@ -54,7 +60,7 @@ def _row_sum_sorting(pdist):
 
     pdist_revised = np.empty_like(pdist)
     pdist_revised[np.ix_(indices_orig,indices_orig)] = pdist[indices_revised]
-    return pdist_revised
+    return pdist_revised, sim_order
 
 def _dist_pole_sorting(x, pdist, metric, **kargs):
 
@@ -98,7 +104,7 @@ def _dist_pole_sorting(x, pdist, metric, **kargs):
     pdist_revised = np.empty_like(pdist)
     pdist_revised[np.ix_(indices_orig,indices_orig)] = pdist[indices_revised]
 
-    return pdist_revised, boundaries
+    return pdist_revised, group_order, boundaries
 
 def _reversed_band_segmentation(pdist, **kargs):
     def reversed_band_matrix(n, k):
