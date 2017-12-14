@@ -29,7 +29,12 @@ def visualize_heatmap(centroids, metric='cosine', sort=None, segmentor=None, **k
     if type(indices_revised) == np.ndarray:
         indices_revised = indices_revised.tolist()
 
-    return figure, indices_revised, points
+    if not points or len(points) <= 2:
+        segments = [0] * n
+    else:
+        segments = [group for group, (b, e) in enumerate(zip(points, points[1:])) for _ in range(e-b)]
+
+    return figure, indices_revised, segments
 
 def _draw_figure(pdist, **kargs):
     figsize = kargs.get('figsize', (15, 15))
