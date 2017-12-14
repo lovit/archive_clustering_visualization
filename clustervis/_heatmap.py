@@ -74,7 +74,7 @@ def _dist_pole_sorting(x, pdist, metric, **kargs):
 
     if df:
         assert x.shape[0] == len(df)
-        sorted_indices, _ = zip(*sorted(enumerate(df), lambda x:-x[1]))
+        sorted_indices, _ = zip(*sorted(enumerate(df), key=lambda x:-x[1]))
     else:
         sorted_indices = pdist.sum(axis=0).argsort()
 
