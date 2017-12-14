@@ -1,5 +1,7 @@
 문서 군집화를 한 뒤, 이를 시각화 하는 튜토리얼입니다. 
 
+## Scatter plot
+
 시각화에는 t-SNE 알고리즘이 자주 이용이 되곤 합니다. 하지만, t-SNE는 학습 과정에서 만들어지는 **P의 품질에 따라** 임베딩 결과가 확연하게 달라집니다. 또한 이미 문서 군집화를 수행하였다면, **문서 군집화 결과를 모델에 반영**하고 싶지만, unsupervised로 진행되는 학습 과정에 이 정보를 반영하는건 쉽지 않습니다. 
 
 이 튜토리얼에서는 172개 영화의 네이버영화 평점 리뷰를 바탕으로 Doc2Vec을 학습했던 document vectors를 군집화 한 뒤, 시각화 하는 방법을 소개합니다. 
@@ -23,3 +25,20 @@ Plot을 함께 봐야 하기 때문에 github의 [tutorial (click)][tutorial]을
 이를 위해서 아래 그림처럼 각 군집의 centroids를 먼저 임베딩하고, 그 점들간의 voronoi 경계를 지키면서, 각 점과 군집중심과의 거리에 비레하도록 데이터 포인트를 뿌려둡니다. 그 과정은 위 링크의 튜토리얼에 적어뒀습니다. 
 
 ![snap3](/images/snap3.JPG)
+
+
+## Centroid pairwise-distance matrix heatmap
+
+군집화 결과의 centroids 간의 pairwise distance matrix 를 heatmap 으로 표현하면 군집의 전반적인 특징을 알 수 있습니다. 동일한 내용의 군집들이라면, 이를 바탕으로 후처리(post-processing)을 할 수도 있습니다. 
+
+	from clustervis import visualize_heatmap
+	figure, indices_reordered, segments = visualize_heatmap(
+                                                  centroids, 
+                                                  sort='dist_pole',
+                                                  dist_pole_max_dist=0.5, 
+                                                  metric='cosine'
+                                              )
+
+위 코드는 Pole clustering 을 이용하여 비슷한 centroids 를 정렬함으로써, 해석 가능한 pairwise distance matrix heatmap 을 그려줍니다. 
+
+![heatmap](/demo_data/centroid_heatmap.png)
