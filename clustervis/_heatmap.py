@@ -47,9 +47,8 @@ def _draw_figure(pdist, **kargs):
 
     n,m = pdist.shape
     figure = plt.figure(figsize=figsize, dpi=dpi, facecolor=facecolor, edgecolor=edgecolor, frameon=frameon)
-    #ax = figure.add_subplot(1,1,1)
-    #ax.set_xlim([0, n])
-    #ax.set_ylim([0, m])
+    plt.xlim((0,n))
+    plt.ylim((0,m))
     plt.imshow(pdist, cmap=cmap)
     if title:
         plt.title(title)
