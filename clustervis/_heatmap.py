@@ -44,12 +44,17 @@ def _draw_figure(pdist, **kargs):
     frameon = kargs.get('frameon', True)
     title = kargs.get('title', None)
     cmap = kargs.get('cmap', 'gray')
-
+    clim = kargs.get('clim', None)
+    
     n,m = pdist.shape
     figure = plt.figure(figsize=figsize, dpi=dpi, facecolor=facecolor, edgecolor=edgecolor, frameon=frameon)
     plt.xlim((0,n))
     plt.ylim((0,m))
-    plt.imshow(pdist, cmap=cmap)
+    if clim:
+        plt.imshow(pdist, cmap=cmap, clim=clim)
+    else:
+        plt.imshow(pdist, cmap=cmap)
+        
     if title:
         plt.title(title)
 
